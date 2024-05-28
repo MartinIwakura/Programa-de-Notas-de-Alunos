@@ -1,7 +1,6 @@
+# Programa de um Sistema de Notas de Alunos
 
 import sqlite3 as conector
-
-# Programa de Notas de Alunos
 
 def criar_tabela():
     try:
@@ -9,17 +8,18 @@ def criar_tabela():
         conexao = conector.connect("./meu_banco.db")
         cursor = conexao.cursor()
 
-        # Execução de um comando: CREATE TABLE Aluno e Nota
+        # Criando as tabelas Aluno E Nota
         comando_aluno = '''CREATE TABLE IF NOT EXISTS Aluno (
-                            aluno_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            nome TEXT NOT NULL
+                            aluno_cpf INTEGER PRIMARY KEY,
+                            nome TEXT NOT NULL,
+                            email TEXT
                             );'''
         comando_nota = '''CREATE TABLE IF NOT EXISTS Nota (
                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           aluno_id INTEGER NOT NULL,
+                           aluno_cpf INTEGER NOT NULL,
                            disciplina TEXT NOT NULL,
                            nota REAL NOT NULL,
-                           FOREIGN KEY (aluno_id) REFERENCES Aluno (aluno_id) ON DELETE CASCADE
+                           FOREIGN KEY (aluno_cpf) REFERENCES Aluno (aluno_cpf) ON DELETE CASCADE
                            );'''
         cursor.execute(comando_aluno)
         cursor.execute(comando_nota)
@@ -44,12 +44,14 @@ def inserir_aluno():
         conexao = conector.connect("./meu_banco.db")
         cursor = conexao.cursor()
 
-        # Perguntar o nome do Aluno
+        # Perguntar os dados do Aluno (como cpf, nome e email)
+        cpf = input("Digite o CPF do aluno: \n")
         nome = input("Digite o nome do aluno: \n")
+        email = input("Digite o email do aluno: \n")
 
         # Definição de um comando com query parameter
-        comando = '''INSERT INTO Aluno (nome) VALUES (?);'''
-        cursor.execute(comando, (nome,))
+        comando = '''INSERT INTO Aluno (aluno_cpf, nome, email) VALUES (?, ?, ?);'''
+        cursor.execute(comando, (cpf, nome, email))
 
         # Efetivação do comando
         conexao.commit()
@@ -65,6 +67,8 @@ def inserir_aluno():
             cursor.close()
             conexao.close()
 
+
+
 def inserir_nota():
     try:
         # Abertura de conexão e aquisição de cursor
@@ -72,13 +76,13 @@ def inserir_nota():
         cursor = conexao.cursor()
 
         # Perguntar os dados da Nota
-        aluno_id = int(input("Digite o ID do aluno: \n"))
+        aluno_cpf = int(input("Digite o CPF do aluno: \n"))
         disciplina = input("Digite a disciplina: \n")
         nota = float(input("Digite a nota: \n"))
 
         # Definição de um comando com query parameter
-        comando = '''INSERT INTO Nota (aluno_id, disciplina, nota) VALUES (?, ?, ?);'''
-        cursor.execute(comando, (aluno_id, disciplina, nota))
+        comando = '''INSERT INTO Nota (aluno_cpf, disciplina, nota) VALUES (?, ?, ?);'''
+        cursor.execute(comando, (aluno_cpf, disciplina, nota))
 
         # Efetivação do comando
         conexao.commit()
@@ -103,11 +107,11 @@ def remover_aluno():
         cursor = conexao.cursor()
 
         # Perguntando o ID do aluno a ser removido
-        aluno_id = int(input("Digite o ID do aluno a ser removido: \n"))
+        aluno_cpf = int(input("Digite o CPF do aluno a ser removido: \n"))
 
         # Definição dos comandos
-        comando = '''DELETE FROM Aluno WHERE aluno_id = ?;'''
-        cursor.execute(comando, (aluno_id,))
+        comando = '''DELETE FROM Aluno WHERE aluno_cpf = ?;'''
+        cursor.execute(comando, (aluno_cpf,))
 
         # Efetivação do comando
         conexao.commit()
@@ -123,6 +127,38 @@ def remover_aluno():
             cursor.close()
             conexao.close()
 
+def alterar_dados():
+    try:
+        # Abertura de conexão e aquisição de cursor
+        conexao = conector.connect("./meu_banco.db")
+        cursor = conexao.cursor()
+
+        # Perguntando o CPF do aluno cujos dados serão alterados
+        aluno_cpf = input("Digite o CPF do aluno cujos dados serão alterados: \n")
+
+        # Perguntando o novo nome, CPF e email do aluno
+        novo_nome = input("Digite o novo nome do aluno: \n")
+        novo_cpf = input("Digite o novo CPF do aluno: \n")
+        novo_email = input("Digite o novo Email do aluno: \n")
+
+        # Definição do comando de atualização
+        comando = '''UPDATE Aluno SET nome = ?, aluno_cpf = ?, email =? WHERE aluno_cpf = ?;'''
+        cursor.execute(comando, (novo_nome, novo_cpf, novo_email, aluno_cpf))
+
+        # Efetivação do comando
+        conexao.commit()
+
+        print("Dados do aluno atualizados com sucesso.")
+
+    except conector.DatabaseError as err:
+        print("Erro de banco de dados:", err)
+
+    finally:
+        # Fechamento das conexões
+        if conexao:
+            cursor.close()
+            conexao.close()
+
 def remover_nota():
     try:
         # Abertura de conexão e aquisição de cursor
@@ -130,16 +166,16 @@ def remover_nota():
         conexao.execute("PRAGMA foreign_keys = on")
         cursor = conexao.cursor()
 
-        # Perguntando o ID do aluno para exibir as notas
-        aluno_id = int(input("Digite o ID do aluno para remover uma nota: \n"))
+        # Perguntando o CPF do aluno para exibir as notas
+        aluno_cpf = int(input("Digite o CPF do aluno para remover uma nota: \n"))
 
         # Exibe as notas do aluno
-        comando = '''SELECT id, disciplina, nota FROM Nota WHERE aluno_id = ?;'''
-        cursor.execute(comando, (aluno_id,))
+        comando = '''SELECT id, disciplina, nota FROM Nota WHERE aluno_cpf = ?;'''
+        cursor.execute(comando, (aluno_cpf,))
         registros = cursor.fetchall()
 
         if registros:
-            print(f"Notas do Aluno (ID: {aluno_id}):")
+            print(f"Notas do Aluno (ID: {aluno_cpf}):")
             for registro in registros:
                 print(f"ID da Nota: {registro[0]}, Disciplina: {registro[1]}, Nota: {registro[2]}")
 
@@ -159,7 +195,7 @@ def remover_nota():
             else:
                 print("ID da Nota inválido para o aluno especificado.")
         else:
-            print("Nenhuma nota encontrada para o aluno com ID:", aluno_id)
+            print("Nenhuma nota encontrada para o aluno com CPF:", aluno_cpf)
 
     except conector.DatabaseError as err:
         print("Erro de banco de dados", err)
@@ -177,16 +213,16 @@ def alterar_nota():
         conexao.execute("PRAGMA foreign_keys = on")
         cursor = conexao.cursor()
 
-        # Pergunta o ID do aluno para exibir as notas
-        aluno_id = int(input("Digite o ID do aluno para alterar uma nota: \n"))
+        # Pergunta o CPF do aluno para exibir as notas
+        aluno_cpf = int(input("Digite o CPF do aluno para alterar uma nota: \n"))
 
         # Exibir as notas do aluno
-        comando = '''SELECT id, disciplina, nota FROM Nota WHERE aluno_id = ?;'''
-        cursor.execute(comando, (aluno_id,))
+        comando = '''SELECT id, disciplina, nota FROM Nota WHERE aluno_cpf = ?;'''
+        cursor.execute(comando, (aluno_cpf,))
         registros = cursor.fetchall()
 
         if registros:
-            print("Notas do Aluno (ID: {}):".format(aluno_id))
+            print("Notas do Aluno (CPF: {}):".format(aluno_cpf))
             for registro in registros:
                 print("ID da Nota: {}, Disciplina: {}, Nota: {}".format(registro[0], registro[1], registro[2]))
 
@@ -209,7 +245,7 @@ def alterar_nota():
             else:
                 print("ID da Nota inválido para o aluno especificado.")
         else:
-            print("Nenhuma nota encontrada para o aluno com ID:", aluno_id)
+            print("Nenhuma nota encontrada para o aluno com ID:", aluno_cpf)
 
     except conector.DatabaseError as err:
         print("Erro de banco de dados", err)
@@ -227,7 +263,7 @@ def consultar_alunos():
         cursor = conexao.cursor()
 
         # Definição do comando de consulta
-        comando = '''SELECT * FROM Aluno;'''
+        comando = '''SELECT aluno_cpf, nome, email FROM Aluno;'''
         cursor.execute(comando)
 
         # Recuperação dos dados
@@ -235,7 +271,10 @@ def consultar_alunos():
         print("Tipo retornado pelo fetchall():", type(registros))
 
         for registro in registros:
-            print("Tipo:", type(registro), "- Conteúdo:", registro)
+            cpf = registro[0]
+            nome = registro[1]
+            email = registro[2]
+            print("Cpf:", cpf, "- Nome:", nome, "- Email:", email)
 
         print("Dados dos Alunos Consultados Com Sucesso.")
 
@@ -248,28 +287,29 @@ def consultar_alunos():
             cursor.close()
             conexao.close()
 
+
 def consultar_notas():
     try:
         # Abertura de conexão e aquisição de cursor
         conexao = conector.connect("./meu_banco.db")
         cursor = conexao.cursor()
 
-        # Pergunta o ID do aluno para consulta
-        aluno_id = int(input("Digite o ID do aluno para consultar as notas: \n"))
+        # Pergunta o CPF do aluno para consulta
+        aluno_cpf = int(input("Digite o CPF do aluno para consultar as notas: \n"))
 
         # Definição do comando de consulta
-        comando = '''SELECT id, disciplina, nota FROM Nota WHERE aluno_id = ?;'''
-        cursor.execute(comando, (aluno_id,))
+        comando = '''SELECT id, disciplina, nota FROM Nota WHERE aluno_cpf = ?;'''
+        cursor.execute(comando, (aluno_cpf,))
 
         # Recuperação dos dados
         registros = cursor.fetchall()
 
         if registros:
-            print("Notas do Aluno (ID: {}):".format(aluno_id))
+            print("Notas do Aluno (CPF: {}):".format(aluno_cpf))
             for registro in registros:
                 print("ID da Nota: {}, Disciplina: {}, Nota: {}".format(registro[0], registro[1], registro[2]))
         else:
-            print("Não há notas para o aluno com ID:", aluno_id)
+            print("Não há notas para o aluno com ID:", aluno_cpf)
 
         print("Notas Consultadas Com Sucesso.")
 
@@ -291,10 +331,11 @@ while True:
     3 - Inserir Nota\n
     4 - Remover Aluno\n
     5 - Remover Nota\n
-    6 - Alterar Nota\n
-    7 - Consultar Alunos\n
-    8 - Consultar Notas\n
-    9 - Terminar Programa\n
+    6 - Alterar Dados\n
+    7 - Alterar Nota\n
+    8 - Consultar Alunos\n
+    9 - Consultar Notas\n
+    0 - Terminar Programa\n
     Digite uma opção: ''')
 
     if opcao == "1":
@@ -308,12 +349,14 @@ while True:
     elif opcao == "5":
         remover_nota()
     elif opcao == "6":
-        alterar_nota()
+        alterar_dados()
     elif opcao == "7":
-        consultar_alunos()
+        alterar_nota()
     elif opcao == "8":
-        consultar_notas()
+        consultar_alunos()
     elif opcao == "9":
+        consultar_notas()
+    elif opcao == "0":
         print("Fim da Execução do Programa.")
         break
     else:
